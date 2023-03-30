@@ -1,8 +1,8 @@
-import minimist from 'minimist'
+import minimist from "minimist";
 import { loadFileAsObjects } from "./logic/LoadFileAsObjects.mjs";
 import { loadFilesInDirectory } from "./logic/LoadFilesInDirectory.mjs";
 
-console.log('Args', process.argv);
+console.log("Args", process.argv);
 
 // Get args
 const argv = minimist(process.argv.slice(2));
@@ -16,11 +16,13 @@ console.log("Credits Loaded: " + creditEntries.length);
 // Load all nested files
 const files = loadFilesInDirectory(assetsFolder, [])
   // Ignore file types
-  .filter(path => !path.endsWith(".md"))
+  .filter(path => !path.endsWith(".md") && !path.endsWith(".mcmeta")) //TODO convert to argv
   // Remove directory prefix
   .map(path => path.replace(assetsFolder, "")
     //Fix path to be relative and matching format for compare
-    .replaceAll("\\", "/").replace("/", ""));
+    .replaceAll("\\", "/").replace("/", ""))
+  //Filter out ignored folders
+  .filter(path => !path.startsWith("recipes") && !path.startsWith("blockstates") && !path.startsWith("lang")); //TODO convert to argv
 
 console.log("Files detected: " + files.length);
 
@@ -30,5 +32,5 @@ console.log("Missing files: " + missingFiles.length + "\n\t" + missingFiles.map(
 
 
 // Check for files lacking credit entries
-const missingCredits = files.filter(f => !creditEntries.find(e => e.assetPath === f))
+const missingCredits = files.filter(f => !creditEntries.find(e => e.assetPath === f));
 console.log("Missing credits: " + missingCredits.length + "\n\t" + missingCredits.join("\n\t"));
