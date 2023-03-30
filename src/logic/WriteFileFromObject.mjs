@@ -1,45 +1,82 @@
 import fileSystem from "fs";
-import lodash from "lodash";
 
 /**
  * Converts the objects into lines and writes them to file
  *
  * @param {String} outputFilePath - path to write files toward
  * @param {String} outputFileName - prefix name of the file
- * @param {Array.<DayEntry>} entries - objects to write
+ * @param {Array.<CreditEntry>} entries - objects to write
  * @return {void}
  */
 export default function writeFileFromObject(outputFilePath, outputFileName, entries) {
 
     const prefixPath = `${outputFilePath}${outputFilePath.endsWith("/") ? "" : "/"}${outputFileName}`
-    //Output json
-    const jsonOutput = JSON.stringify(entries, null, 2);
-    fileSystem.writeFileSync(`${prefixPath}_metadata.json`, jsonOutput);
 
-    //Output timesheet file
-    const outputLines = entries.map(dayEntry => {
-            const lines = convertProjectHoursIntoLines(dayEntry.projectHours);
-            return "### " + dayEntry.date + "\n\n"
-                + `**Total Hours:** ${dayEntry.totalHours.toFixed(2)}h\n\n`
-                + `**OOO:** ${dayEntry.outOfOffice.toFixed(2)}h\n\n`
-                + "| Project | Hours |\n"
-                + "| --- | --- |\n"
-                + lines.join("\n")
-        }
+    // Column data
+    const columns = ["File name", "Type", "Date Added", "Author", "License/Owner", "Notes"];
+    const columnSizes = columns.map(s => s.length);
+
+    // Figure out column sizes
+    entries.forEach(entry => {
+        columnSizes[0] = getGreater(entry.assetPath, columnSizes[0]);
+        columnSizes[1] = getGreater(entry.type, columnSizes[1]);
+        columnSizes[2] = getGreater(entry.date, columnSizes[2]);
+        columnSizes[3] = getGreater(entry.author, columnSizes[3]);
+        columnSizes[4] = getGreater(entry.license, columnSizes[4]);
+        columnSizes[5] = getGreater(entry.notes, columnSizes[5]);
+    });
+
+    //Convert entries into lines
+    const outputLines = entries.sort(compareEntries).map(entry => {
+          return "|"
+            + formatCell(entry.assetPath, columnSizes[0]) + "|"
+            + formatCell(entry.type, columnSizes[1])  + "|"
+            + formatCell(entry.date, columnSizes[2])  + "|"
+            + formatCell(entry.author, columnSizes[3])  + "|"
+            + formatCell(entry.license, columnSizes[4])  + "|"
+            + formatCell(entry.notes, columnSizes[5])  + "|"
+      }
     );
-    const outputText = `# ${outputFileName}\n\n`
-        + `Timesheet generated on ${new Date().toISOString().slice(0, 10)} from parsed note entries\n\n`
-        + `**Total Hours:** ${lodash.sum(entries.map(etr => etr.totalHours)).toFixed(2)}\n\n`
-        + `**OOO:** ${lodash.sum(entries.map(etr => etr.outOfOffice)).toFixed(2)}h\n\n`
-        + "## Times\n\n"
-        + outputLines.join("\n\n")
-        + "\n"
+
+    const outputText = `# Generated Credits Output\n\n`
+        + `Created on ${new Date().toISOString().slice(0, 10)} from parsed entries\n\n`
+        + `\n\n`
+        + "## Files\n\n"
+        //header
+        + "|" + columns.map((c, i) => formatCell(c, columnSizes[i])).join("|") + "|\n"
+        + "|" + columns.map((c, i) => "-".repeat(columnSizes[i] + 2)).join("|") + "|\n"
+        //body
+        + outputLines.join("\n")
 
     fileSystem.writeFileSync(`${prefixPath}.md`, outputText);
 }
 
-function convertProjectHoursIntoLines(projectHours) {
-    return projectHours.map((projectEntry) => {
-        return `| ${projectEntry.name} | ${projectEntry.hours.toFixed(2)} |`;
-    });
+function formatCell(line, width) {
+    if(line === null || line === undefined) {
+        return " ".repeat(width + 2);
+    }
+    return ` ${line.padEnd(width)} `;
+}
+
+/**
+ *
+ * @param {CreditEntry} a
+ * @param {CreditEntry} b
+ * @returns {number}
+ */
+function compareEntries(a, b) {
+    return a.assetPath.localeCompare(b.assetPath);
+}
+
+/**
+ *
+ * @param {String} line
+ * @param {Number} currentMax
+ * @return {Number}
+ */
+function getGreater(line, currentMax) {
+    if(line === null || line === undefined) {
+        return currentMax;
+    }
+    return line.length > currentMax ? line.length : currentMax;
 }

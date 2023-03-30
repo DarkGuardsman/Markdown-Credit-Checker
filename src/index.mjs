@@ -1,6 +1,7 @@
 import minimist from "minimist";
 import { loadFileAsObjects } from "./logic/LoadFileAsObjects.mjs";
 import { loadFilesInDirectory } from "./logic/LoadFilesInDirectory.mjs";
+import writeFileFromObject from "./logic/WriteFileFromObject.mjs";
 
 console.log("Args", process.argv);
 
@@ -34,3 +35,12 @@ console.log("Missing files: " + missingFiles.length + "\n\t" + missingFiles.map(
 // Check for files lacking credit entries
 const missingCredits = files.filter(f => !creditEntries.find(e => e.assetPath === f));
 console.log("Missing credits: " + missingCredits.length + "\n\t" + missingCredits.join("\n\t"));
+
+// Convert all files into credit entries for export
+const outputEntries = [...creditEntries];
+missingCredits.forEach(file => {
+  outputEntries.push({
+    assetPath: file
+  });
+})
+writeFileFromObject(assetsFolder, "_generated_credits.md", outputEntries);
